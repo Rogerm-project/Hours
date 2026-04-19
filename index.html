@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d1117" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Work Hours" />
+  <title>Work Hours</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #21262d;
+      --accent:    #39d353;
+      --accent-dim:#1a6629;
+      --red:       #f85149;
+      --red-dim:   #5c1e1a;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --radius:    14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 20px 10px;
+    }
+    header h1 {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    #week-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* ── Clock card ── */
+    #clock-card {
+      margin: 10px 16px 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      display: inline-block;
+      margin-right: 8px;
+      vertical-align: middle;
+      transition: background 0.3s;
+    }
+    #status-dot.active {
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(57,211,83,0.2);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 3px rgba(57,211,83,0.2); }
+      50%      { box-shadow: 0 0 0 6px rgba(57,211,83,0.05); }
+    }
+
+    #status-label {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-family: 'Space Mono', monospace;
+    }
+
+    #timer {
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(48px, 14vw, 72px);
+      font-weight: 700;
+      letter-spacing: -2px;
+      color: var(--text);
+      margin: 18px 0 6px;
+      line-height: 1;
+      transition: color 0.3s;
+    }
+    #timer.active { color: var(--accent); }
+
+    #clock-in-time {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      min-height: 18px;
+      margin-bottom: 24px;
+    }
+
+    /* ── Main button ── */
+    #main-btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--accent);
+      color: #0d1117;
+      transition: transform 0.1s, opacity 0.2s, background 0.3s;
+      letter-spacing: 0.02em;
+    }
+    #main-btn.clocked-in {
+      background: var(--red);
+      color: #fff;
+    }
+    #main-btn:active { transform: scale(0.97); opacity: 0.85; }
+
+    /* ── Stats row ── */
+    #stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin: 10px 16px 0;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 12px;
+      text-align: center;
+    }
+    .stat-val {
+      font-family: 'Space Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .stat-lbl {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+    }
+
+    /* ── Log section ── */
+    #log-section {
+      flex: 1;
+      margin: 12px 16px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    #log-header span {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-family: 'Space Mono', monospace;
+    }
+    #clear-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    #clear-btn:hover { border-color: var(--red); color: var(--red); }
+
+    #log-list {
+      overflow-y: auto;
+      flex: 1;
+      padding: 8px 0;
+    }
+
+    .log-empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 32px 16px;
+      line-height: 1.8;
+    }
+
+    .log-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      animation: slideIn 0.2s ease;
+    }
+    .log-item:last-child { border-bottom: none; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .log-date {
+      font-size: 13px;
+      color: var(--text);
+    }
+    .log-date small {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      margin-top: 2px;
+    }
+    .log-duration {
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .log-delete {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 2px 4px;
+      line-height: 1;
+      border-radius: 4px;
+      transition: color 0.2s;
+    }
+    .log-delete:hover { color: var(--red); }
+
+    /* ── Note modal ── */
+    #note-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    #note-overlay.open { display: flex; }
+    #note-sheet {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px 18px 0 0;
+      padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+      width: 100%;
+      max-width: 500px;
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+    #note-sheet h3 {
+      font-size: 15px; font-weight: 600; margin-bottom: 14px;
+      color: var(--text);
+    }
+    #note-input {
+      width: 100%; background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px;
+      color: var(--text); font-size: 15px;
+      font-family: 'DM Sans', sans-serif;
+      resize: none; height: 80px;
+      outline: none;
+    }
+    #note-input:focus { border-color: var(--accent); }
+    #note-save {
+      margin-top: 12px; width: 100%;
+      background: var(--accent); color: #0d1117;
+      border: none; border-radius: 10px;
+      padding: 14px; font-size: 16px; font-weight: 600;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+    }
+    #note-skip {
+      margin-top: 8px; width: 100%;
+      background: none; color: var(--muted);
+      border: none; border-radius: 10px;
+      padding: 10px; font-size: 14px;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⏱ Work Hours</h1>
+  <span id="week-label"></span>
+</header>
+
+<div id="clock-card">
+  <div>
+    <span id="status-dot"></span>
+    <span id="status-label">Not clocked in</span>
+  </div>
+  <div id="timer">00:00:00</div>
+  <div id="clock-in-time"></div>
+  <button id="main-btn">Clock In</button>
+</div>
+
+<div id="stats-row">
+  <div class="stat-card">
+    <div class="stat-val" id="stat-today">0h 0m</div>
+    <div class="stat-lbl">Today</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val" id="stat-week">0h 0m</div>
+    <div class="stat-lbl">This Week</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val" id="stat-total">0h 0m</div>
+    <div class="stat-lbl">All Time</div>
+  </div>
+</div>
+
+<div id="log-section">
+  <div id="log-header">
+    <span>Session Log</span>
+    <button id="clear-btn">Clear All</button>
+  </div>
+  <div id="log-list"></div>
+</div>
+
+<!-- Note sheet after clock-out -->
+<div id="note-overlay">
+  <div id="note-sheet">
+    <h3>Add a note? (optional)</h3>
+    <textarea id="note-input" placeholder="What did you work on?"></textarea>
+    <button id="note-save">Save Note</button>
+    <button id="note-skip">Skip</button>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'wh_sessions_v1';
+  const ACTIVE_KEY  = 'wh_active_v1';
+
+  let sessions = [];
+  let activeSession = null;
+  let timerInterval = null;
+  let pendingSession = null;
+
+  // ── Persistence ──
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+  }
+  function load() {
+    try { sessions = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { sessions = []; }
+    try { activeSession = JSON.parse(localStorage.getItem(ACTIVE_KEY)); } catch { activeSession = null; }
+  }
+
+  // ── Helpers ──
+  function fmtDuration(ms) {
+    if (ms < 0) ms = 0;
+    const s = Math.floor(ms / 1000);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  }
+  function fmtHM(ms) {
+    if (ms < 0) ms = 0;
+    const totalMin = Math.floor(ms / 60000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return `${h}h ${m}m`;
+  }
+  function fmtTime(ts) {
+    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  function fmtDate(ts) {
+    const d = new Date(ts);
+    const today = new Date();
+    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return 'Today';
+    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+  function startOfWeek() {
+    const d = new Date(); d.setHours(0,0,0,0);
+    const day = d.getDay(); // 0=Sun
+    d.setDate(d.getDate() - day);
+    return d.getTime();
+  }
+  function startOfDay() {
+    const d = new Date(); d.setHours(0,0,0,0); return d.getTime();
+  }
+
+  // ── UI Updates ──
+  const timerEl    = document.getElementById('timer');
+  const statusDot  = document.getElementById('status-dot');
+  const statusLbl  = document.getElementById('status-label');
+  const mainBtn    = document.getElementById('main-btn');
+  const ciTime     = document.getElementById('clock-in-time');
+  const logList    = document.getElementById('log-list');
+  const statToday  = document.getElementById('stat-today');
+  const statWeek   = document.getElementById('stat-week');
+  const statTotal  = document.getElementById('stat-total');
+  const weekLabel  = document.getElementById('week-label');
+
+  function updateWeekLabel() {
+    const now = new Date();
+    weekLabel.textContent = now.toLocaleDateString([], { month: 'short', year: 'numeric' });
+  }
+
+  function updateStats() {
+    const now = Date.now();
+    const dayStart  = startOfDay();
+    const weekStart = startOfWeek();
+    let today = 0, week = 0, total = 0;
+    for (const s of sessions) {
+      const dur = s.end - s.start;
+      total += dur;
+      if (s.start >= dayStart)  today += dur;
+      if (s.start >= weekStart) week  += dur;
+    }
+    // add live session
+    if (activeSession) {
+      const live = now - activeSession.start;
+      total += live; today += live; week += live;
+    }
+    statToday.textContent = fmtHM(today);
+    statWeek.textContent  = fmtHM(week);
+    statTotal.textContent = fmtHM(total);
+  }
+
+  function renderLog() {
+    if (sessions.length === 0) {
+      logList.innerHTML = `<div class="log-empty">No sessions yet.<br>Tap <strong>Clock In</strong> to start.</div>`;
+      return;
+    }
+    const sorted = [...sessions].reverse();
+    logList.innerHTML = sorted.map((s, i) => {
+      const realIdx = sessions.length - 1 - i;
+      const dur = s.end - s.start;
+      return `
+        <div class="log-item">
+          <div class="log-date">
+            ${fmtDate(s.start)}
+            <small>${fmtTime(s.start)} – ${fmtTime(s.end)}${s.note ? ' · ' + s.note : ''}</small>
+          </div>
+          <div class="log-duration">${fmtHM(dur)}</div>
+          <button class="log-delete" data-idx="${realIdx}" title="Delete">×</button>
+        </div>`;
+    }).join('');
+
+    logList.querySelectorAll('.log-delete').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx);
+        sessions.splice(idx, 1);
+        save(); renderLog(); updateStats();
+      });
+    });
+  }
+
+  function updateClockUI() {
+    if (activeSession) {
+      statusDot.classList.add('active');
+      statusLbl.textContent = 'Clocked in';
+      mainBtn.textContent = 'Clock Out';
+      mainBtn.classList.add('clocked-in');
+      timerEl.classList.add('active');
+      ciTime.textContent = `Since ${fmtTime(activeSession.start)}`;
+    } else {
+      statusDot.classList.remove('active');
+      statusLbl.textContent = 'Not clocked in';
+      mainBtn.textContent = 'Clock In';
+      mainBtn.classList.remove('clocked-in');
+      timerEl.classList.remove('active');
+      timerEl.textContent = '00:00:00';
+      ciTime.textContent = '';
+    }
+  }
+
+  function startTimer() {
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      const elapsed = Date.now() - activeSession.start;
+      timerEl.textContent = fmtDuration(elapsed);
+      updateStats();
+    }, 1000);
+  }
+
+  // ── Actions ──
+  function clockIn() {
+    activeSession = { start: Date.now() };
+    localStorage.setItem(ACTIVE_KEY, JSON.stringify(activeSession));
+    updateClockUI();
+    startTimer();
+  }
+
+  function clockOut() {
+    clearInterval(timerInterval);
+    pendingSession = { start: activeSession.start, end: Date.now(), note: '' };
+    activeSession = null;
+    localStorage.removeItem(ACTIVE_KEY);
+    updateClockUI();
+    updateStats();
+    // show note sheet
+    document.getElementById('note-overlay').classList.add('open');
+    document.getElementById('note-input').value = '';
+  }
+
+  function finaliseSession(note) {
+    pendingSession.note = note;
+    sessions.push(pendingSession);
+    pendingSession = null;
+    save(); renderLog(); updateStats();
+    document.getElementById('note-overlay').classList.remove('open');
+  }
+
+  mainBtn.addEventListener('click', () => {
+    if (!activeSession) clockIn(); else clockOut();
+  });
+
+  document.getElementById('note-save').addEventListener('click', () => {
+    finaliseSession(document.getElementById('note-input').value.trim());
+  });
+  document.getElementById('note-skip').addEventListener('click', () => finaliseSession(''));
+  document.getElementById('note-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('note-overlay')) finaliseSession('');
+  });
+
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    if (confirm('Delete all sessions?')) {
+      sessions = []; save(); renderLog(); updateStats();
+    }
+  });
+
+  // ── Init ──
+  load();
+  updateWeekLabel();
+  updateClockUI();
+  renderLog();
+  updateStats();
+  if (activeSession) startTimer();
+
+  // Service worker registration
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
