@@ -3,6 +3,7 @@
   "short_name":  "Work Hours",
   "description": "Simple work hours tracker",
   "start_url": "/Rogerm-Project/Hours/index.html",
+  "scope":"Rogerm-project/Hours/"
   "display": "standalone",
   "background_color": "#0d1117",
   "theme_color": "#0d1117",
